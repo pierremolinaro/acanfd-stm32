@@ -1,29 +1,19 @@
-// CAN1 external LoopBackDemo for NUCLEO_H743ZI2
-// No external hardware required.
-// You can observe emitted CANFD frames on CANH / CANL pins.
-// This sketch is an example of extended filters.
+// This demo runs on NUCLEO_G474RE
+// It shows how handle extended frame receive filters
+// The FDCAN1 module is configured in external loop back mode: it
+// internally receives every CAN frame it sends, and emitted frames
+// can be observed on TxCAN pin. No external hardware is required.
 //-----------------------------------------------------------------
 
-#ifndef ARDUINO_NUCLEO_H743ZI2
-  #error This sketch runs on NUCLEO-H743ZI2 Nucleo-144 board
+#ifndef ARDUINO_NUCLEO_G474RE
+  #error This sketch runs on NUCLEO-G474RE Nucleo-64 board
 #endif
 
 //-----------------------------------------------------------------
 // IMPORTANT:
 //   <ACANFD_STM32.h> should be included only once, generally from the .ino file
 //   From an other file, include <ACANFD_STM32-from-cpp.h>
-//   Before including <ACANFD_STM32.h>, you should define 
-//   Message RAM size for FDCAN1 and Message RAM size for FDCAN2.
-//   Maximum required size is 2,560 (2,560 32-bit words).
-//   A 0 size means the FDCAN module is not configured; its TxCAN and RxCAN pins
-//   can be freely used for an other function.
-//   The begin method checks if actual size is greater or equal to required size.
-//   Hint: if you do not want to compute required size, print
-//   fdcan1.messageRamRequiredMinimumSize () for getting it.
 //-----------------------------------------------------------------
-
-static const uint32_t FDCAN1_MESSAGE_RAM_WORD_SIZE = 2560 ;
-static const uint32_t FDCAN2_MESSAGE_RAM_WORD_SIZE = 0 ; // FDCAN2 not used
 
 #include <ACANFD_STM32.h>
 
@@ -85,17 +75,7 @@ void setup () {
 //--- Reject extended frames that do not match any filter
   settings.mNonMatchingExtendedFrameReception = ACANFD_STM32_FilterAction::REJECT ;
 
-// Therefore FIFO0 receives 1 + 2 + 32 = 35 frames, FIFO1 receives 565 frames.
-
-//--- Allocate FIFO 1
-  settings.mHardwareRxFIFO1Size = 10 ; // By default, 0
-  settings.mDriverReceiveFIFO1Size = 10 ; // By default, 0
-
   const uint32_t errorCode = fdcan1.beginFD (settings, extendedFilters) ;
-
-  Serial.print ("Message RAM required minimum size: ") ;
-  Serial.print (fdcan1.messageRamRequiredMinimumSize ()) ;
-  Serial.println (" words") ;
 
   if (0 == errorCode) {
     Serial.println ("can configuration ok") ;
@@ -108,7 +88,7 @@ void setup () {
 //-----------------------------------------------------------------
 
 static const uint32_t PERIOD = 1000 ;
-static uint32_t gBlinkDate = PERIOD ;
+static uint32_t gBlinkDate = 0 ;
 static uint32_t gSentIdentifier = 0 ;
 static uint32_t gReceiveCountFIFO0 = 0 ;
 static uint32_t gReceiveCountFIFO1 = 0 ;

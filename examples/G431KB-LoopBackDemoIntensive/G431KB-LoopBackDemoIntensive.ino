@@ -25,7 +25,7 @@ static ACANFD_STM32_FIFO gBuffer ;
 void setup () {
   gBuffer.initWithSize (25) ;
   pinMode (LED_BUILTIN, OUTPUT) ;
-  Serial.begin (115200) ;
+  Serial.begin (9600) ;
   while (!Serial) {
     delay (50) ;
     digitalWrite (LED_BUILTIN, !digitalRead (LED_BUILTIN)) ;

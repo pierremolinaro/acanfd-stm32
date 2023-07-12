@@ -30,7 +30,7 @@ static const uint32_t FDCAN2_MESSAGE_RAM_WORD_SIZE = 0 ; // FDCAN2 not used
 
 void setup () {
   pinMode (LED_BUILTIN, OUTPUT) ;
-  Serial.begin (115200) ;
+  Serial.begin (9600) ;
   while (!Serial) {
     delay (50) ;
     digitalWrite (LED_BUILTIN, !digitalRead (LED_BUILTIN)) ;
