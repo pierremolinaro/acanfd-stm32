@@ -17,7 +17,7 @@
 //-----------------------------------------------------------------
 // IMPORTANT:
 //   <ACANFD_STM32.h> should be included only once in a sketch, generally from the .ino file
-//   From an other file, include <ACANFD_STM32-from-cpp.h>
+//   From an other file, include <ACANFD_STM32_from_cpp.h>
 //-----------------------------------------------------------------
 
 #include <ACANFD_STM32.h>
@@ -66,7 +66,7 @@ void setup () {
   Serial.print ("Exact Data Bit Rate ? ") ;
   Serial.println (settings.exactDataBitRate () ? "yes" : "no") ;
 
-//--- beginFD is called without any receive filter, all sent frames are received 
+//--- beginFD is called without any receive filter, all sent frames are received
 //    by receiveFD0 throught receiveFIFO0
   uint32_t errorCode = fdcan1.beginFD (settings) ;
   if (0 == errorCode) {
@@ -76,7 +76,7 @@ void setup () {
     Serial.println (errorCode, HEX) ;
   }
 
-  
+
   errorCode = fdcan2.beginFD (settings) ;
   if (0 == errorCode) {
     Serial.println ("fdcan2 configuration ok") ;
@@ -85,7 +85,7 @@ void setup () {
     Serial.println (errorCode, HEX) ;
   }
 
-  
+
   errorCode = fdcan3.beginFD (settings) ;
   if (0 == errorCode) {
     Serial.println ("fdcan3 configuration ok") ;

@@ -12,7 +12,7 @@
 //-----------------------------------------------------------------
 // IMPORTANT:
 //   <ACANFD_STM32.h> should be included only once, generally from the .ino file
-//   From an other file, include <ACANFD_STM32-from-cpp.h>
+//   From an other file, include <ACANFD_STM32_from_cpp.h>
 //-----------------------------------------------------------------
 
 #include <ACANFD_STM32.h>
@@ -28,7 +28,7 @@ void setup () {
   }
 
   ACANFD_STM32_Settings settings (500 * 1000, DataBitRateFactor::x4) ;
- 
+
   Serial.print ("Bit Rate prescaler: ") ;
   Serial.println (settings.mBitRatePrescaler) ;
   Serial.print ("Arbitration Phase segment 1: ") ;
@@ -61,7 +61,7 @@ void setup () {
   Serial.println (settings.exactDataBitRate () ? "yes" : "no") ;
 
   settings.mModuleMode = ACANFD_STM32_Settings::EXTERNAL_LOOP_BACK ;
-  
+
   uint32_t errorCode = fdcan1.beginFD (settings) ;
   if (0 == errorCode) {
     Serial.println ("fdcan1 ok") ;
@@ -83,6 +83,24 @@ static uint32_t gReceivedCount = 0 ;
 
 void loop () {
   if (gSendDate < millis ()) {
+    Serial.print ("CPU frequency: ") ;
+    Serial.print (F_CPU) ;
+    Serial.println (" Hz") ;
+    Serial.print ("PCLK1 frequency: ") ;
+    Serial.print (HAL_RCC_GetPCLK1Freq ()) ;
+    Serial.println (" Hz") ;
+    Serial.print ("PCLK2 frequency: ") ;
+    Serial.print (HAL_RCC_GetPCLK2Freq ()) ;
+    Serial.println (" Hz") ;
+    Serial.print ("HCLK frequency: ") ;
+    Serial.print (HAL_RCC_GetHCLKFreq ()) ;
+    Serial.println (" Hz") ;
+    Serial.print ("SysClock frequency: ") ;
+    Serial.print (HAL_RCC_GetSysClockFreq ()) ;
+    Serial.println (" Hz") ;
+    Serial.print ("CAN Clock: ") ;
+    Serial.print (fdcanClock ()) ;
+    Serial.println (" Hz") ;
     CANFDMessage message ;
     message.id = 0x7FF ;
     message.len = 8 ;

@@ -9,8 +9,8 @@
 //-----------------------------------------------------------------
 // IMPORTANT:
 //   <ACANFD_STM32.h> should be included only once, generally from the .ino file
-//   From an other file, include <ACANFD_STM32-from-cpp.h>
-//   Before including <ACANFD_STM32.h>, you should define 
+//   From an other file, include <ACANFD_STM32_from_cpp.h>
+//   Before including <ACANFD_STM32.h>, you should define
 //   Message RAM size for FDCAN1 and Message RAM size for FDCAN2.
 //   Maximum required size is 2,560 (2,560 32-bit words).
 //   A 0 size means the FDCAN module is not configured; its TxCAN and RxCAN pins
@@ -74,9 +74,9 @@ void setup () {
   Serial.println ("%") ;
   Serial.print ("Exact Data Bit Rate ? ") ;
   Serial.println (settings.exactDataBitRate () ? "yes" : "no") ;
- 
+
   const uint32_t errorCode = fdcan2.beginFD (settings) ;
- 
+
   Serial.print ("Message RAM required minimum size: ") ;
   Serial.print (fdcan2.messageRamRequiredMinimumSize ()) ;
   Serial.println (" words") ;
@@ -177,14 +177,14 @@ void loop () {
       for (uint32_t i=0 ; i<frame.len ; i++) {
         frame.data [i] = uint8_t (pseudoRandomValue ()) ;
       }
-      break ;  
+      break ;
     case CANFDMessage::CANFD_WITH_BIT_RATE_SWITCH :
       gCanFDWithBRSDataFrameCount += 1 ;
       frame.len = CANFD_LENGTH_FROM_CODE [pseudoRandomValue () & 0xF] ;
       for (uint32_t i=0 ; i<frame.len ; i++) {
         frame.data [i] = uint8_t (pseudoRandomValue ()) ;
       }
-      break ;  
+      break ;
     }
     gBuffer.append (frame) ;
     const uint32_t sendStatus = fdcan2.tryToSendReturnStatusFD (frame) ;
@@ -228,7 +228,7 @@ void loop () {
       Serial.print ("  LENGTH: ") ;
       Serial.print (storedFrame.len) ;
       Serial.print (" :: ") ;
-      Serial.println (receivedFrame.len) ;     
+      Serial.println (receivedFrame.len) ;
     }
   }
 }

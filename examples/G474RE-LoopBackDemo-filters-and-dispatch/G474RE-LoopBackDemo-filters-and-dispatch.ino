@@ -12,7 +12,7 @@
 //-----------------------------------------------------------------
 // IMPORTANT:
 //   <ACANFD_STM32.h> should be included only once, generally from the .ino file
-//   From an other file, include <ACANFD_STM32-from-cpp.h>
+//   From an other file, include <ACANFD_STM32_from_cpp.h>
 //-----------------------------------------------------------------
 
 #include <ACANFD_STM32.h>
@@ -122,7 +122,7 @@ void setup () {
   settings.mModuleMode = ACANFD_STM32_Settings::EXTERNAL_LOOP_BACK ;
 
 
-  ACANFD_STM32::StandardFilters standardFilters ;
+  ACANFD_STM32_StandardFilters standardFilters ;
 //--- Add classic filter: identifier and mask (8 matching identifiers)
   standardFilters.addClassic (0x405, 0x7D5, ACANFD_STM32_FilterAction::FIFO0, callBackForStandardClassicFilter) ;
 //--- Add range filter: low bound, high bound (36 matching identifiers)
@@ -132,7 +132,7 @@ void setup () {
 //--- Add single filter: identifier (1 matching identifier)
   standardFilters.addSingle (0x055, ACANFD_STM32_FilterAction::FIFO0, callBackForStandardSingleFilter) ;
 
-  ACANFD_STM32::ExtendedFilters extendedFilters ;
+  ACANFD_STM32_ExtendedFilters extendedFilters ;
 //--- Add single filter: identifier (1 matching identifier)
   extendedFilters.addSingle (0x5555, ACANFD_STM32_FilterAction::FIFO0, callBackForExtendedSingleFilter) ;
 //--- Add dual filter: identifier1, identifier2 (2 matching identifiers)
@@ -191,7 +191,7 @@ void loop () {
       gOk = false ;
       Serial.print ("Sent error 0x") ;
       Serial.println (sendStatus) ;
-    } 
+    }
   }
 //--- All standard frame have been sent ?
   if (!gSendExtended && gOk && (gSentIdentifier > 0x7FF)) {
@@ -209,7 +209,7 @@ void loop () {
       gOk = false ;
       Serial.print ("Sent error 0x") ;
       Serial.println (sendStatus) ;
-    } 
+    }
   }
 //--- Receive frame
   fdcan1.dispatchReceivedMessage () ;

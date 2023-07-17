@@ -1,20 +1,14 @@
-#include <ACANFD_STM32-from-cpp.h>
+#include <ACANFD_STM32_from_cpp.h>
 
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //    THIS FILE IS SPECIFIC TO NUCLEO-H743ZI2
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 
 #ifdef ARDUINO_NUCLEO_H743ZI2
 
-//--------------------------------------------------------------------------------------------------
-//    GPIOn Adresses
-//--------------------------------------------------------------------------------------------------
-
-static GPIO_TypeDef * GPIOAddressArray [4] = {GPIOA, GPIOB, GPIOC, GPIOD} ;
-
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //    Constructor
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 
 ACANFD_STM32::ACANFD_STM32 (volatile FDCAN_GlobalTypeDef * inPeripheralModuleBasePointer,
                             const uint32_t inMessageRAMWordStartOffset,
@@ -36,22 +30,22 @@ mIRQ1 (inIRQ1),
 mPeripheralPtr (inPeripheralModuleBasePointer) {
 }
 
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //    beginFD method
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 
 uint32_t ACANFD_STM32::beginFD (const ACANFD_STM32_Settings & inSettings,
-                                       const ExtendedFilters & inExtendedFilters) {
-  return beginFD (inSettings, ACANFD_STM32::StandardFilters (), inExtendedFilters) ;
+                                const ACANFD_STM32_ExtendedFilters & inExtendedFilters) {
+  return beginFD (inSettings, ACANFD_STM32_StandardFilters (), inExtendedFilters) ;
 }
 
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //    beginFD method
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 
 uint32_t ACANFD_STM32::beginFD (const ACANFD_STM32_Settings & inSettings,
-                                const StandardFilters & inStandardFilters,
-                                const ExtendedFilters & inExtendedFilters) {
+                                const ACANFD_STM32_StandardFilters & inStandardFilters,
+                                const ACANFD_STM32_ExtendedFilters & inExtendedFilters) {
   uint32_t errorFlags = inSettings.CANFDBitSettingConsistency () ;
 
 
@@ -107,8 +101,8 @@ uint32_t ACANFD_STM32::beginFD (const ACANFD_STM32_Settings & inSettings,
     }
   }
   if (pinFound) {
+    GPIO_TypeDef * gpio = set_GPIO_Port_Clock (mRxPinArray [idx].mPinName >> 4) ;
     const uint32_t pinIndex = mTxPinArray [idx].mPinName & 0x0F ;
-    GPIO_TypeDef * gpio = GPIOAddressArray [mTxPinArray [idx].mPinName >> 4] ;
     const uint32_t txPinMask = 1U << pinIndex ;
     LL_GPIO_SetPinMode  (gpio, txPinMask, LL_GPIO_MODE_ALTERNATE) ;
     const uint32_t output = inSettings.mOpenCollectorOutput
@@ -137,9 +131,14 @@ uint32_t ACANFD_STM32::beginFD (const ACANFD_STM32_Settings & inSettings,
     }
   }
   if (pinFound) {
+    GPIO_TypeDef * gpio = set_GPIO_Port_Clock (mRxPinArray [idx].mPinName >> 4) ;
     const uint32_t pinIndex = mRxPinArray [idx].mPinName & 0x0F ;
-    GPIO_TypeDef * gpio = GPIOAddressArray [mRxPinArray [idx].mPinName >> 4] ;
     const uint32_t rxPinMask = 1U << pinIndex ;
+    const uint32_t input = inSettings.mInputPullup
+      ? LL_GPIO_PULL_UP
+      : LL_GPIO_PULL_NO
+    ;
+    LL_GPIO_SetPinPull (gpio, rxPinMask, input) ;
     LL_GPIO_SetPinMode (gpio, rxPinMask, LL_GPIO_MODE_ALTERNATE) ;
     if (pinIndex < 8) {
       LL_GPIO_SetAFPin_0_7 (gpio, rxPinMask, mRxPinArray [idx].mPinAlternateMode) ;
@@ -338,9 +337,9 @@ uint32_t ACANFD_STM32::beginFD (const ACANFD_STM32_Settings & inSettings,
   return errorFlags ;
 }
 
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //    end
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 
 void ACANFD_STM32::end (void) {
 //--- Disable interrupts
@@ -356,15 +355,15 @@ void ACANFD_STM32::end (void) {
 //   mFIFO1CallBackArray.free () ;
 }
 
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 
 uint32_t ACANFD_STM32::messageRamRequiredMinimumSize (void) {
   return mMessageRamRequiredWordSize ;
 }
 
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //   RECEPTION
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 
 bool ACANFD_STM32::availableFD0 (void) {
   noInterrupts () ;
@@ -373,7 +372,7 @@ bool ACANFD_STM32::availableFD0 (void) {
   return hasMessage ;
 }
 
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 
 bool ACANFD_STM32::receiveFD0 (CANFDMessage & outMessage) {
   noInterrupts () ;
@@ -382,7 +381,7 @@ bool ACANFD_STM32::receiveFD0 (CANFDMessage & outMessage) {
   return hasMessage ;
 }
 
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 
 bool ACANFD_STM32::availableFD1 (void) {
   noInterrupts () ;
@@ -391,7 +390,7 @@ bool ACANFD_STM32::availableFD1 (void) {
   return hasMessage ;
 }
 
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 
 bool ACANFD_STM32::receiveFD1 (CANFDMessage & outMessage) {
   noInterrupts () ;
@@ -400,7 +399,7 @@ bool ACANFD_STM32::receiveFD1 (CANFDMessage & outMessage) {
   return hasMessage ;
 }
 
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 
 bool ACANFD_STM32::dispatchReceivedMessage (void) {
   CANFDMessage message ;
@@ -416,7 +415,7 @@ bool ACANFD_STM32::dispatchReceivedMessage (void) {
   return result ;
 }
 
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 
 bool ACANFD_STM32::dispatchReceivedMessageFIFO0 (void) {
   CANFDMessage message ;
@@ -427,7 +426,7 @@ bool ACANFD_STM32::dispatchReceivedMessageFIFO0 (void) {
   return result ;
 }
 
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 
 bool ACANFD_STM32::dispatchReceivedMessageFIFO1 (void) {
   CANFDMessage message ;
@@ -438,7 +437,7 @@ bool ACANFD_STM32::dispatchReceivedMessageFIFO1 (void) {
   return result ;
 }
 
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 
 void ACANFD_STM32::internalDispatchReceivedMessage (const CANFDMessage & inMessage) {
   const uint32_t filterIndex = inMessage.idx ;
@@ -461,9 +460,9 @@ void ACANFD_STM32::internalDispatchReceivedMessage (const CANFDMessage & inMessa
   }
 }
 
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //   EMISSION
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 
 bool ACANFD_STM32::sendBufferNotFullForIndex (const uint32_t inMessageIndex) {
   bool canSend = false ;
@@ -481,7 +480,7 @@ bool ACANFD_STM32::sendBufferNotFullForIndex (const uint32_t inMessageIndex) {
   return canSend ;
 }
 
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 
 uint32_t ACANFD_STM32::tryToSendReturnStatusFD (const CANFDMessage & inMessage) {
   noInterrupts () ;
@@ -517,7 +516,7 @@ uint32_t ACANFD_STM32::tryToSendReturnStatusFD (const CANFDMessage & inMessage) 
   return sendStatus ;
 }
 
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 
 void ACANFD_STM32::writeTxBuffer (const CANFDMessage & inMessage, const uint32_t inTxBufferIndex) {
 //--- Compute Tx Buffer address
@@ -585,9 +584,9 @@ void ACANFD_STM32::writeTxBuffer (const CANFDMessage & inMessage, const uint32_t
   mPeripheralPtr->TXBAR = 1U << inTxBufferIndex ;
 }
 
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //   INTERRUPT SERVICE ROUTINES
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 
 static void getMessageFrom (const uint32_t * inMessageRamAddress,
                             const ACANFD_STM32_Settings::Payload inPayLoad,
@@ -634,7 +633,7 @@ static void getMessageFrom (const uint32_t * inMessageRamAddress,
   }
 }
 
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 
 void ACANFD_STM32::isr0 (void) {
 //--- Interrupt Acknowledge
@@ -654,7 +653,7 @@ void ACANFD_STM32::isr0 (void) {
   }
 }
 
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 
 void ACANFD_STM32::isr1 (void) {
 //--- Interrupt Acknowledge
@@ -702,7 +701,7 @@ void ACANFD_STM32::isr1 (void) {
   }
 }
 
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //--- Status Flags (returns 0 if no error)
 //  Bit 0 : hardware RxFIFO 0 overflow
 //  Bit 1 : driver RxFIFO 0 overflow
@@ -738,152 +737,13 @@ uint32_t ACANFD_STM32::statusFlags (void) const {
   return result ;
 }
 
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 
 ACANFD_STM32::BusStatus::BusStatus (volatile FDCAN_GlobalTypeDef * inModulePtr) :
 mErrorCount (uint16_t (inModulePtr->ECR)),
 mProtocolStatus (inModulePtr->PSR) {
 }
 
-//--------------------------------------------------------------------------------------------------
-//    Standard filters
-//--------------------------------------------------------------------------------------------------
-
-bool ACANFD_STM32::StandardFilters::addSingle (const uint16_t inIdentifier,
-                                               const ACANFD_STM32_FilterAction inAction,
-                                               const ACANFDCallBackRoutine inCallBack) {
-  return addDual (inIdentifier, inIdentifier, inAction, inCallBack) ;
-}
-
-//--------------------------------------------------------------------------------------------------
-
-bool ACANFD_STM32::StandardFilters::addDual (const uint16_t inIdentifier1,
-                                             const uint16_t inIdentifier2,
-                                             const ACANFD_STM32_FilterAction inAction,
-                                             const ACANFDCallBackRoutine inCallBack) {
-  const bool ok = (inIdentifier1 <= 0x7FF) && (inIdentifier2 <= 0x7FF) ;
-  if (ok) {
-    uint32_t filter = inIdentifier2 ;
-    filter |= uint32_t (inIdentifier1) << 16 ;
-    filter |= (1U << 30) ; // Dual filter
-    filter |= ((uint32_t (inAction) + 1) << 27) ; // Filter action
-    mFilterArray.append (filter) ;
-    mCallBackArray.append (inCallBack) ;
-  }
-  return ok ;
-}
-
-//--------------------------------------------------------------------------------------------------
-
-bool ACANFD_STM32::StandardFilters::addRange (const uint16_t inIdentifier1,
-                                              const uint16_t inIdentifier2,
-                                              const ACANFD_STM32_FilterAction inAction,
-                                              const ACANFDCallBackRoutine inCallBack) {
-  const bool ok = (inIdentifier1 <= inIdentifier2) && (inIdentifier2 <= 0x7FF) ;
-  if (ok) {
-    uint32_t filter = inIdentifier2 ;
-    filter |= uint32_t (inIdentifier1) << 16 ;
-    filter |= ((uint32_t (inAction) + 1) << 27) ; // Filter action
-    mFilterArray.append (filter) ;  // Filter type is 0 (RANGE)
-    mCallBackArray.append (inCallBack) ;
-  }
-  return ok ;
-}
-
-//--------------------------------------------------------------------------------------------------
-
-bool ACANFD_STM32::StandardFilters::addClassic (const uint16_t inIdentifier,
-                                                const uint16_t inMask,
-                                                const ACANFD_STM32_FilterAction inAction,
-                                                const ACANFDCallBackRoutine inCallBack) {
-  const bool ok = (inIdentifier <= 0x7FF)
-               && (inMask <= 0x7FF)
-               && ((inIdentifier & inMask) == inIdentifier) ;
-  if (ok) {
-    uint32_t filter = inMask ;
-    filter |= uint32_t (inIdentifier) << 16 ;
-    filter |= (2U << 30) ; // Classic filter
-    filter |= ((uint32_t (inAction) + 1) << 27) ; // Filter action
-    mFilterArray.append (filter) ;
-    mCallBackArray.append (inCallBack) ;
-  }
-  return ok ;
-}
-
-//--------------------------------------------------------------------------------------------------
-//    Extended filters
-//--------------------------------------------------------------------------------------------------
-
-static const uint32_t MAX_EXTENDED_IDENTIFIER = 0x1FFFFFFF ;
-
-//--------------------------------------------------------------------------------------------------
-
-bool ACANFD_STM32::ExtendedFilters::addSingle (const uint32_t inIdentifier,
-                                               const ACANFD_STM32_FilterAction inAction,
-                                               const ACANFDCallBackRoutine inCallBack) {
-  return addDual (inIdentifier, inIdentifier, inAction, inCallBack) ;
-}
-
-//--------------------------------------------------------------------------------------------------
-
-bool ACANFD_STM32::ExtendedFilters::addDual (const uint32_t inIdentifier1,
-                                             const uint32_t inIdentifier2,
-                                             const ACANFD_STM32_FilterAction inAction,
-                                             const ACANFDCallBackRoutine inCallBack) {
-  const bool ok = (inIdentifier1 <= MAX_EXTENDED_IDENTIFIER)
-               && (inIdentifier2 <= MAX_EXTENDED_IDENTIFIER) ;
-  if (ok) {
-    uint32_t filter = inIdentifier1 ;
-    filter |= ((uint32_t (inAction) + 1) << 29) ; // Filter action
-    mFilterArray.append (filter) ;
-    filter = inIdentifier2 ;
-    filter |= (1U << 30) ; // Dual filter
-    mFilterArray.append (filter) ;
-    mCallBackArray.append (inCallBack) ;
-  }
-  return ok ;
-}
-
-//--------------------------------------------------------------------------------------------------
-
-bool ACANFD_STM32::ExtendedFilters::addRange (const uint32_t inIdentifier1,
-                                              const uint32_t inIdentifier2,
-                                              const ACANFD_STM32_FilterAction inAction,
-                                              const ACANFDCallBackRoutine inCallBack) {
-  const bool ok = (inIdentifier1 <= inIdentifier2)
-               && (inIdentifier2 <= MAX_EXTENDED_IDENTIFIER) ;
-  if (ok) {
-    uint32_t filter = inIdentifier1 ; // Filter type is 0 (RANGE)
-    filter |= ((uint32_t (inAction) + 1) << 29) ; // Filter action
-    mFilterArray.append (filter) ;
-    filter = inIdentifier2 ;
-    mFilterArray.append (filter) ;  // Filter type is 0 (RANGE)
-    mCallBackArray.append (inCallBack) ;
-  }
-  return ok ;
-}
-
-//--------------------------------------------------------------------------------------------------
-
-bool ACANFD_STM32::ExtendedFilters::addClassic (const uint32_t inIdentifier,
-                                                const uint32_t inMask,
-                                                const ACANFD_STM32_FilterAction inAction,
-                                                const ACANFDCallBackRoutine inCallBack) {
-  const bool ok = (inIdentifier <= MAX_EXTENDED_IDENTIFIER)
-               && (inMask <= MAX_EXTENDED_IDENTIFIER)
-               && ((inIdentifier & inMask) == inIdentifier) ;
-  if (ok) {
-    uint32_t filter = inIdentifier ;
-    filter |= ((uint32_t (inAction) + 1) << 29) ; // Filter action
-    mFilterArray.append (filter) ;
-    filter = inMask ;
-    filter |= (2U << 30) ; // Classic filter
-    mFilterArray.append (filter) ;
-    mCallBackArray.append (inCallBack) ;
-  }
-  return ok ;
-}
-
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 
 #endif

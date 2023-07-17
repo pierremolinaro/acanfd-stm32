@@ -12,8 +12,8 @@
 //-----------------------------------------------------------------
 // IMPORTANT:
 //   <ACANFD_STM32.h> should be included only once, generally from the .ino file
-//   From an other file, include <ACANFD_STM32-from-cpp.h>
-//   Before including <ACANFD_STM32.h>, you should define 
+//   From an other file, include <ACANFD_STM32_from_cpp.h>
+//   Before including <ACANFD_STM32.h>, you should define
 //   Message RAM size for FDCAN1 and Message RAM size for FDCAN2.
 //   Maximum required size is 2,560 (2,560 32-bit words).
 //   A 0 size means the FDCAN module is not configured; its TxCAN and RxCAN pins
@@ -32,6 +32,7 @@ static const uint32_t FDCAN2_MESSAGE_RAM_WORD_SIZE = 1000 ;
 
 void setup () {
   pinMode (LED_BUILTIN, OUTPUT) ;
+  digitalWrite (LED_BUILTIN, HIGH) ;
   Serial.begin (9600) ;
   while (!Serial) {
     digitalWrite (LED_BUILTIN, !digitalRead (LED_BUILTIN)) ;
@@ -39,7 +40,7 @@ void setup () {
   }
 
   ACANFD_STM32_Settings settings (1000 * 1000, DataBitRateFactor::x4) ;
- 
+
   Serial.print ("Bit Rate prescaler: ") ;
   Serial.println (settings.mBitRatePrescaler) ;
   Serial.print ("Arbitration Phase segment 1: ") ;
@@ -72,7 +73,7 @@ void setup () {
   Serial.println (settings.exactDataBitRate () ? "yes" : "no") ;
 
   settings.mModuleMode = ACANFD_STM32_Settings::EXTERNAL_LOOP_BACK ;
-  
+
   // settings.mTxPin = PB_9 ;
   // settings.mRxPin = PB_8 ;
   uint32_t errorCode = fdcan1.beginFD (settings) ;
@@ -85,7 +86,7 @@ void setup () {
     Serial.print ("Error can: 0x") ;
     Serial.println (errorCode, HEX) ;
   }
- 
+
   // settings.mTxPin = 255 ;
   // settings.mRxPin = 255 ;
   errorCode = fdcan2.beginFD (settings) ;

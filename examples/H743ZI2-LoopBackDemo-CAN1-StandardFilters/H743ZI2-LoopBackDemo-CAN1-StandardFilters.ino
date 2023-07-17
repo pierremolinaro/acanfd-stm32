@@ -10,8 +10,8 @@
 //-----------------------------------------------------------------
 // IMPORTANT:
 //   <ACANFD_STM32.h> should be included only once, generally from the .ino file
-//   From an other file, include <ACANFD_STM32-from-cpp.h>
-//   Before including <ACANFD_STM32.h>, you should define 
+//   From an other file, include <ACANFD_STM32_from_cpp.h>
+//   Before including <ACANFD_STM32.h>, you should define
 //   Message RAM size for FDCAN1 and Message RAM size for FDCAN2.
 //   Maximum required size is 2,560 (2,560 32-bit words).
 //   A 0 size means the FDCAN module is not configured; its TxCAN and RxCAN pins
@@ -71,7 +71,7 @@ void setup () {
 
   settings.mModuleMode = ACANFD_STM32_Settings::EXTERNAL_LOOP_BACK ;
 
-  ACANFD_STM32::StandardFilters standardFilters ;
+  ACANFD_STM32_StandardFilters standardFilters ;
 //--- Add classic filter: identifier and mask (8 matching identifiers)
   standardFilters.addClassic (0x405, 0x7D5, ACANFD_STM32_FilterAction::FIFO0) ;
 //--- Add range filter: low bound, high bound (36 matching identifiers)
@@ -136,7 +136,7 @@ void loop () {
       gOk = false ;
       Serial.print ("Sent error 0x") ;
       Serial.println (sendStatus) ;
-    } 
+    }
   }
 //--- Receive frame
   CANFDMessage frame ;

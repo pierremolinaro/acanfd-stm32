@@ -11,7 +11,7 @@
 //-----------------------------------------------------------------
 // IMPORTANT:
 //   <ACANFD_STM32.h> should be included only once, generally from the .ino file
-//   From an other file, include <ACANFD_STM32-from-cpp.h>
+//   From an other file, include <ACANFD_STM32_from_cpp.h>
 //-----------------------------------------------------------------
 
 #include <ACANFD_STM32.h>
@@ -65,9 +65,9 @@ void setup () {
   Serial.println ("%") ;
   Serial.print ("Exact Data Bit Rate ? ") ;
   Serial.println (settings.exactDataBitRate () ? "yes" : "no") ;
- 
+
   const uint32_t errorCode = fdcan1.beginFD (settings) ;
- 
+
  if (0 == errorCode) {
     Serial.println ("can configuration ok") ;
   }else{
@@ -166,14 +166,14 @@ void loop () {
       for (uint32_t i=0 ; i<frame.len ; i++) {
         frame.data [i] = uint8_t (pseudoRandomValue ()) ;
       }
-      break ;  
+      break ;
     case CANFDMessage::CANFD_WITH_BIT_RATE_SWITCH :
       gCanFDWithBRSDataFrameCount += 1 ;
       frame.len = CANFD_LENGTH_FROM_CODE [pseudoRandomValue () & 0xF] ;
       for (uint32_t i=0 ; i<frame.len ; i++) {
         frame.data [i] = uint8_t (pseudoRandomValue ()) ;
       }
-      break ;  
+      break ;
     }
     gBuffer.append (frame) ;
     const uint32_t sendStatus = fdcan1.tryToSendReturnStatusFD (frame) ;
@@ -192,7 +192,7 @@ void loop () {
     gOk = gBuffer.remove (storedFrame) ;
     if (!gOk) {
       Serial.println ("gBuffer is empty") ;
-    }else{    
+    }else{
       gReceiveCount += 1 ;
       bool sameFrames = storedFrame.id == receivedFrame.id ;
       if (sameFrames) {
@@ -220,7 +220,7 @@ void loop () {
         Serial.print ("  LENGTH: ") ;
         Serial.print (storedFrame.len) ;
         Serial.print (" :: ") ;
-        Serial.println (receivedFrame.len) ;     
+        Serial.println (receivedFrame.len) ;
       }
     }
   }
