@@ -32,7 +32,7 @@ void setup () {
     delay (50) ;
   }
 
-  ACANFD_STM32_Settings settings (500 * 1000, DataBitRateFactor::x4) ;
+  ACANFD_STM32_Settings settings (500 * 1000, DataBitRateFactor::x10) ;
   settings.mModuleMode = ACANFD_STM32_Settings::EXTERNAL_LOOP_BACK ;
 
   Serial.print ("Bit Rate prescaler: ") ;
