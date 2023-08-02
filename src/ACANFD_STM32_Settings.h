@@ -58,15 +58,18 @@ class ACANFD_STM32_Settings {
   public: const uint32_t mDesiredArbitrationBitRate ; // In bit/s
   public: const DataBitRateFactor mDataBitRateFactor ;
 //--- bitrate prescaler is common to arbitration bitrate and data bitrate
-  public: uint8_t mBitRatePrescaler = 32 ; // 1...32
+  public: uint32_t mBitRatePrescaler = 32 ; // 1...32
 //--- Arbitration segments
-  public: uint16_t mArbitrationPhaseSegment1 = 256 ; // 1...256
-  public: uint8_t mArbitrationPhaseSegment2 = 128 ;  // 2...128
-  public: uint8_t mArbitrationSJW = 128 ; // 1...128
+  public: uint32_t mArbitrationPhaseSegment1 = 256 ; // 1...256
+  public: uint32_t mArbitrationPhaseSegment2 = 128 ;  // 2...128
+  public: uint32_t mArbitrationSJW = 128 ; // 1...128
 //--- Data segments
-  public: uint8_t mDataPhaseSegment1 = 32 ; // 1...32
-  public: uint8_t mDataPhaseSegment2 = 16 ;  // 2...16
-  public: uint8_t mDataSJW = 16 ; // 1...16
+  public: uint32_t mDataPhaseSegment1 = 32 ; // 1...32
+  public: uint32_t mDataPhaseSegment2 = 16 ;  // 2...16
+  public: uint32_t mDataSJW = 16 ; // 1...16
+
+//--- Transceiver Delay Compensation
+  public: uint32_t mTransceiverDelayCompensation = 0 ; // 0 ... 127
 
   public: bool mTripleSampling = false ; // true --> triple sampling, false --> single sampling
   public: bool mBitSettingOk = true ; // The above configuration is correct
@@ -93,9 +96,6 @@ class ACANFD_STM32_Settings {
 
 //--- Automatic retransmission
   public: bool mEnableRetransmission = true ;
-
-//--- Transceiver Delay Compensation
-  public: uint8_t mTransceiverDelayCompensation = 5 ; // 0 ... 127
 
 //--- TxPin is push/pull, or open collector output
   public: bool mOpenCollectorOutput = false ; // false --> push / pull, true --> open collector
@@ -125,11 +125,11 @@ class ACANFD_STM32_Settings {
   public: uint32_t ppmFromWishedBitRate (void) const ;
 
 //--- Distance of sample point from bit start (in ppc, part-per-cent, denoted by %)
-  public: uint32_t arbitrationSamplePointFromBitStart (void) const ;
-  public: uint32_t dataSamplePointFromBitStart (void) const ;
+  public: float arbitrationSamplePointFromBitStart (void) const ;
+  public: float dataSamplePointFromBitStart (void) const ;
 
 //--- Bit settings are consistent ? (returns 0 if ok)
-  public: uint32_t CANFDBitSettingConsistency (void) const ;
+  public: uint32_t checkBitSettingConsistency (void) const ;
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   // Constants returned by CANBitSettingConsistency
@@ -152,6 +152,7 @@ class ACANFD_STM32_Settings {
   public: static const uint32_t kDataSJWIsZero                                = 1U << 14 ;
   public: static const uint32_t kDataSJWIsGreaterThan16                       = 1U << 15 ;
   public: static const uint32_t kDataSJWIsGreaterThanPhaseSegment2            = 1U << 16 ;
+  public: static const uint32_t kTransceiverDelayCompensationIsGreaterThan127 = 1U << 17 ;
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   //  Extension for programmable RAM section CANFD modules
@@ -208,7 +209,5 @@ class ACANFD_STM32_Settings {
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 } ;
-
-//----------------------------------------------------------------------------------------
 
 //----------------------------------------------------------------------------------------

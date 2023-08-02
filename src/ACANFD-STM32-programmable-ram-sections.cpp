@@ -46,7 +46,7 @@ uint32_t ACANFD_STM32::beginFD (const ACANFD_STM32_Settings & inSettings,
 uint32_t ACANFD_STM32::beginFD (const ACANFD_STM32_Settings & inSettings,
                                 const ACANFD_STM32_StandardFilters & inStandardFilters,
                                 const ACANFD_STM32_ExtendedFilters & inExtendedFilters) {
-  uint32_t errorFlags = inSettings.CANFDBitSettingConsistency () ;
+  uint32_t errorFlags = inSettings.checkBitSettingConsistency () ;
 
 
 //------------------------------------------------------ Check settings
@@ -74,21 +74,6 @@ uint32_t ACANFD_STM32::beginFD (const ACANFD_STM32_Settings & inSettings,
   if (inExtendedFilters.count () > 128) {
     errorFlags |= kTooManyExtendedFilters ;
   }
-
-
-//---------------------------------------------- Enable CAN clock
-//   if ((RCC->APB1HENR & (1U << RCC_APB1HENR_FDCANEN_Pos)) == 0) { // CAN clock enabled ?
-//     RCC->APB1HENR |= 1U << RCC_APB1HENR_FDCANEN_Pos ; // Enable clock for CAN
-//     const uint32_t unused1 __attribute__ ((unused)) = RCC->APB1HENR ; // Wait until done
-//   //---------------------------------------------- Reset CAN peripheral
-//     RCC->APB1HRSTR |=    (1U << RCC_APB1HRSTR_FDCANRST_Pos) ;
-//     RCC->APB1HRSTR &=  ~ (1U << RCC_APB1HRSTR_FDCANRST_Pos) ;
-//   //---------------------------------------------- Select fdcan_ker_ck CAN clock
-//     uint32_t d2ccip1r = RCC->D2CCIP1R ;
-//     d2ccip1r &= ~RCC_D2CCIP1R_FDCANSEL_Msk ;
-//     d2ccip1r |=  (1 << RCC_D2CCIP1R_FDCANSEL_Pos) ; // Select PLL1Q clock as fdcan_ker_ck (120 MHz)
-//     RCC->D2CCIP1R = d2ccip1r ;
-//   }
 
 
 //---------------------------------------------- Configure TxPin
@@ -162,7 +147,7 @@ uint32_t ACANFD_STM32::beginFD (const ACANFD_STM32_Settings & inSettings,
   uint32_t cccr = FDCAN_CCCR_BRSE | FDCAN_CCCR_FDOE | FDCAN_CCCR_PXHD ;
 
 //------------------------------------------------------ Select fdcan_tq_clk CAN clock
-  FDCAN_CCU->CCFG = FDCANCCU_CCFG_BCC | (0 << FDCANCCU_CCFG_CDIV_Pos) ; // fdcan_tq_clk = fdcan_ker_ck / 1 = 120 MHz
+  FDCAN_CCU->CCFG = FDCANCCU_CCFG_BCC | (0 << FDCANCCU_CCFG_CDIV_Pos) ;
 
 //------------------------------------------------------ Select mode
   mPeripheralPtr->TEST = 0 ;
@@ -200,8 +185,6 @@ uint32_t ACANFD_STM32::beginFD (const ACANFD_STM32_Settings & inSettings,
 
 //------------------------------------------------------ Set data Bit Timing and Prescaler
   mPeripheralPtr->DBTP =
-    FDCAN_DBTP_TDC // Enable Transceiver Delay Compensation ?
-  |
     (uint32_t (inSettings.mBitRatePrescaler - 1) << 16)
   |
     (uint32_t (inSettings.mDataPhaseSegment1 - 1) << 8)
@@ -209,6 +192,9 @@ uint32_t ACANFD_STM32::beginFD (const ACANFD_STM32_Settings & inSettings,
     (uint32_t (inSettings.mDataPhaseSegment2 - 1) << 4)
   |
     (uint32_t (inSettings.mDataSJW - 1) << 0)
+  |
+  // Enable Transceiver Delay Compensation ?
+    ((inSettings.mTransceiverDelayCompensation > 0) ? FDCAN_DBTP_TDC : 0)
   ;
 
 

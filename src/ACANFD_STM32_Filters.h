@@ -6,7 +6,6 @@
 
 #include <CANFDMessage.h>
 #include <ACANFD_STM32_DynamicArray.h>
-//#include <stdint.h>
 
 //----------------------------------------------------------------------------------------
 

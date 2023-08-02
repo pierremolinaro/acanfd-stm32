@@ -15,7 +15,9 @@
 
 //----------------------------------------------------------------------------------------
 
-#include <Arduino.h>
+#ifdef ARDUINO
+  #include <Arduino.h>
+#endif
 
 //----------------------------------------------------------------------------------------
 
@@ -34,7 +36,7 @@ class CANMessage {
     int16_t  data_s16 [4]  ; // Caution: subject to endianness
     float    dataFloat [2] ; // Caution: subject to endianness
     int8_t   data_s8 [8]   ;
-    uint8_t  data   [8] = {0, 0, 0, 0, 0, 0, 0, 0} ;
+    uint8_t  data    [8] = {0, 0, 0, 0, 0, 0, 0, 0} ;
   } ;
 } ;
 

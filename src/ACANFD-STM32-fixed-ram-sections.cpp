@@ -48,7 +48,7 @@ uint32_t ACANFD_STM32::beginFD (const ACANFD_STM32_Settings & inSettings,
 uint32_t ACANFD_STM32::beginFD (const ACANFD_STM32_Settings & inSettings,
                                 const ACANFD_STM32_StandardFilters & inStandardFilters,
                                 const ACANFD_STM32_ExtendedFilters & inExtendedFilters) {
-  uint32_t errorFlags = inSettings.CANFDBitSettingConsistency () ;
+  uint32_t errorFlags = inSettings.checkBitSettingConsistency () ;
 
 
 //------------------------------------------------------ Check settings
@@ -153,32 +153,33 @@ uint32_t ACANFD_STM32::beginFD (const ACANFD_STM32_Settings & inSettings,
 
 //------------------------------------------------------ Set nominal Bit Timing and Prescaler
   mPeripheralPtr->NBTP =
-    (uint32_t (inSettings.mArbitrationSJW - 1) << 25)
+    ((inSettings.mArbitrationSJW - 1) << 25)
   |
-    (uint32_t (inSettings.mBitRatePrescaler - 1) << 16)
+    ((inSettings.mBitRatePrescaler - 1) << 16)
   |
-    (uint32_t (inSettings.mArbitrationPhaseSegment1 - 1) << 8)
+    ((inSettings.mArbitrationPhaseSegment1 - 1) << 8)
   |
-    (uint32_t (inSettings.mArbitrationPhaseSegment2 - 1) << 0)
+    ((inSettings.mArbitrationPhaseSegment2 - 1) << 0)
   ;
 
 
 //------------------------------------------------------ Set data Bit Timing and Prescaler
   mPeripheralPtr->DBTP =
-    FDCAN_DBTP_TDC // Enable Transceiver Delay Compensation ?
+    ((inSettings.mBitRatePrescaler - 1) << 16)
   |
-    (uint32_t (inSettings.mBitRatePrescaler - 1) << 16)
+    ((inSettings.mDataPhaseSegment1 - 1) << 8)
   |
-    (uint32_t (inSettings.mDataPhaseSegment1 - 1) << 8)
+    ((inSettings.mDataPhaseSegment2 - 1) << 4)
   |
-    (uint32_t (inSettings.mDataPhaseSegment2 - 1) << 4)
+    ((inSettings.mDataSJW - 1) << 0)
   |
-    (uint32_t (inSettings.mDataSJW - 1) << 0)
+  // Enable Transceiver Delay Compensation ?
+    ((inSettings.mTransceiverDelayCompensation > 0) ? FDCAN_DBTP_TDC : 0)
   ;
 
 
 //------------------------------------------------------ Transmitter Delay Compensation
-  mPeripheralPtr->TDCR = uint32_t (inSettings.mTransceiverDelayCompensation) << 8 ;
+  mPeripheralPtr->TDCR = inSettings.mTransceiverDelayCompensation << 8 ;
 
 
 //------------------------------------------------------ Global Filter Configuration
