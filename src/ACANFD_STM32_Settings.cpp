@@ -5,19 +5,17 @@
 
 //----------------------------------------------------------------------------------------
 
-#ifdef ARDUINO
-  #ifdef ARDUINO_NUCLEO_H743ZI2
-    #include <stm32h7xx_ll_rcc.h>
-    static const uint32_t fdcanClockSource = LL_RCC_FDCAN_CLKSOURCE_PLL1Q ; // Select PLL1Q
-  #elif defined (ARDUINO_NUCLEO_G431KB)
-    #include <stm32g4xx_ll_rcc.h>
-    static const uint32_t fdcanClockSource = RCC_FDCANCLKSOURCE_PCLK1 ; // Select PCLK1
-  #elif defined (ARDUINO_NUCLEO_G474RE)
-    #include <stm32g4xx_ll_rcc.h>
-    static const uint32_t fdcanClockSource = RCC_FDCANCLKSOURCE_PCLK1 ; // Select PCLK1
-  #else
-    #error "Unhandled Nucleo Board"
-  #endif
+#ifdef ARDUINO_NUCLEO_H743ZI2
+  #include <stm32h7xx_ll_rcc.h>
+  static const uint32_t fdcanClockSource = LL_RCC_FDCAN_CLKSOURCE_PLL1Q ; // Select PLL1Q
+#elif defined (ARDUINO_NUCLEO_G431KB)
+  #include <stm32g4xx_ll_rcc.h>
+  static const uint32_t fdcanClockSource = RCC_FDCANCLKSOURCE_PCLK1 ; // Select PCLK1
+#elif defined (ARDUINO_NUCLEO_G474RE)
+  #include <stm32g4xx_ll_rcc.h>
+  static const uint32_t fdcanClockSource = RCC_FDCANCLKSOURCE_PCLK1 ; // Select PCLK1
+#else
+  #error "Unhandled Nucleo Board"
 #endif
 
 //----------------------------------------------------------------------------------------
