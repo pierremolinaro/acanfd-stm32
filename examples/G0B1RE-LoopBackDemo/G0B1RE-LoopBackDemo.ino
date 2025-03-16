@@ -1,17 +1,21 @@
-// LoopBackDemo
-
-// This demo runs on NUCLEO_G431KB
-// The FDCAN module is configured in external loop back mode: it
+//-----------------------------------------------------------------
+// This demo runs on NUCLEO_G0B1RE
+// The can clock frequency is 64 MHz.
+// The 2 FDCAN modules are configured in external loop back mode: it
 // internally receives every CAN frame it sends, and emitted frames
-// can be observed on TxCAN pin (PA12). No external hardware is required.
+// can be observed on TxCAN pins. No external hardware is required.
+// Default TxCAN pins are used:
+//   - fdcan1: PA_12
+//   - fdcan2: PB_1
+//-----------------------------------------------------------------
 
-#ifndef ARDUINO_NUCLEO_G431KB
-  #error This sketch runs on NUCLEO-G431KB Nucleo-32 board
+#ifndef ARDUINO_NUCLEO_G0B1RE
+  #error This sketch runs on NUCLEO-G0B1RE Nucleo-64 board
 #endif
 
 //-----------------------------------------------------------------
 // IMPORTANT:
-//   <ACANFD_STM32.h> should be included only once, generally from the .ino file
+//   <ACANFD_STM32.h> should be included only once in a sketch, generally from the .ino file
 //   From an other file, include <ACANFD_STM32_from_cpp.h>
 //-----------------------------------------------------------------
 
@@ -27,7 +31,24 @@ void setup () {
     delay (50) ;
   }
 
-  ACANFD_STM32_Settings settings (500 * 1000, DataBitRateFactor::x5) ;
+  Serial.print ("CPU frequency: ") ;
+  Serial.print (F_CPU) ;
+  Serial.println (" Hz") ;
+  Serial.print ("PCLK1 frequency: ") ;
+  Serial.print (HAL_RCC_GetPCLK1Freq ()) ;
+  Serial.println (" Hz") ;
+  Serial.print ("HCLK frequency: ") ;
+  Serial.print (HAL_RCC_GetHCLKFreq ()) ;
+  Serial.println (" Hz") ;
+  Serial.print ("SysClock frequency: ") ;
+  Serial.print (HAL_RCC_GetSysClockFreq ()) ;
+  Serial.println (" Hz") ;
+  Serial.print ("FDCAN Clock: ") ;
+  Serial.print (fdcanClock ()) ;
+  Serial.println (" Hz") ;
+
+  ACANFD_STM32_Settings settings (500 * 1000, DataBitRateFactor::x2) ;
+  settings.mModuleMode = ACANFD_STM32_Settings::EXTERNAL_LOOP_BACK ;
 
   Serial.print ("Bit Rate prescaler: ") ;
   Serial.println (settings.mBitRatePrescaler) ;
@@ -60,51 +81,43 @@ void setup () {
   Serial.print ("Exact Data Bit Rate ? ") ;
   Serial.println (settings.exactDataBitRate () ? "yes" : "no") ;
 
-  settings.mModuleMode = ACANFD_STM32_Settings::EXTERNAL_LOOP_BACK ;
-
+//--- beginFD is called without any receive filter, all sent frames are received
+//    by receiveFD0 throught receiveFIFO0
   uint32_t errorCode = fdcan1.beginFD (settings) ;
   if (0 == errorCode) {
-    Serial.println ("fdcan1 ok") ;
+    Serial.println ("fdcan1 configuration ok") ;
   }else{
-    Serial.print ("Error can: 0x") ;
+    Serial.print ("Error fdcan1: 0x") ;
     Serial.println (errorCode, HEX) ;
-    while (1) {
-      digitalWrite (LED_BUILTIN, !digitalRead (LED_BUILTIN)) ;
-      delay (50) ;
-    }
   }
-  Serial.print ("Systick ") ;
-  Serial.println (SysTick->LOAD + 1) ;
+  errorCode = fdcan2.beginFD (settings) ;
+  if (0 == errorCode) {
+    Serial.println ("fdcan2 configuration ok") ;
+  }else{
+    Serial.print ("Error fdcan2: 0x") ;
+    Serial.println (errorCode, HEX) ;
+  }
 }
 
 //-----------------------------------------------------------------
 
 static uint32_t gSendDate = 0 ;
-static uint32_t gSentCount = 0 ;
-static uint32_t gReceivedCount = 0 ;
+static uint32_t gSentCount1 = 0 ;
+static uint32_t gReceivedCount1 = 0 ;
+static uint32_t gSentCount2 = 0 ;
+static uint32_t gReceivedCount2 = 0 ;
 
 //-----------------------------------------------------------------
 
 void loop () {
+//--- As the library does not implement FDCAN interrupt handling for
+// the STM32G0B1RE, you should poll each module.
+  fdcan1.poll () ;
+  fdcan2.poll () ;
+//---
   if (gSendDate < millis ()) {
-    // Serial.print ("CPU frequency: ") ;
-    // Serial.print (F_CPU) ;
-    // Serial.println (" Hz") ;
-    // Serial.print ("PCLK1 frequency: ") ;
-    // Serial.print (HAL_RCC_GetPCLK1Freq ()) ;
-    // Serial.println (" Hz") ;
-    // Serial.print ("PCLK2 frequency: ") ;
-    // Serial.print (HAL_RCC_GetPCLK2Freq ()) ;
-    // Serial.println (" Hz") ;
-    // Serial.print ("HCLK frequency: ") ;
-    // Serial.print (HAL_RCC_GetHCLKFreq ()) ;
-    // Serial.println (" Hz") ;
-    // Serial.print ("SysClock frequency: ") ;
-    // Serial.print (HAL_RCC_GetSysClockFreq ()) ;
-    // Serial.println (" Hz") ;
-    // Serial.print ("CAN Clock: ") ;
-    // Serial.print (fdcanClock ()) ;
-    // Serial.println (" Hz") ;
+    gSendDate += 1000 ;
+    digitalWrite (LED_BUILTIN, !digitalRead (LED_BUILTIN)) ;
     CANFDMessage message ;
     message.id = 0x7FF ;
     message.len = 8 ;
@@ -116,19 +129,31 @@ void loop () {
     message.data [5] = 5 ;
     message.data [6] = 6 ;
     message.data [7] = 7 ;
-    const uint32_t sendStatus = fdcan1.tryToSendReturnStatusFD (message) ;
+//--- tryToSendReturnStatusFD returns 0 if message has been successfully
+//    appended in transmit buffer.
+//  A not zero returned value contains an error code (see doc)
+    uint32_t sendStatus = fdcan1.tryToSendReturnStatusFD (message) ;
     if (sendStatus == 0) {
-      // digitalWrite (LED_BUILTIN, !digitalRead (LED_BUILTIN)) ;
-      gSendDate += 1000 ;
-      gSentCount += 1 ;
+      gSentCount1 += 1 ;
       Serial.print ("fdcan1 sent: ") ;
-      Serial.println (gSentCount) ;
+      Serial.println (gSentCount1) ;
+    }
+    sendStatus = fdcan2.tryToSendReturnStatusFD (message) ;
+    if (sendStatus == 0) {
+      gSentCount2 += 1 ;
+      Serial.print ("fdcan2 sent: ") ;
+      Serial.println (gSentCount2) ;
     }
   }
   CANFDMessage messageFD ;
   if (fdcan1.receiveFD0 (messageFD)) {
-    gReceivedCount += 1 ;
+    gReceivedCount1 += 1 ;
     Serial.print ("fdcan1 received: ") ;
-    Serial.println (gReceivedCount) ;
+    Serial.println (gReceivedCount1) ;
+  }
+  if (fdcan2.receiveFD0 (messageFD)) {
+    gReceivedCount2 += 1 ;
+    Serial.print ("fdcan2 received: ") ;
+    Serial.println (gReceivedCount2) ;
   }
 }

@@ -68,7 +68,7 @@ void setup () {
 
   const uint32_t errorCode = fdcan1.beginFD (settings) ;
 
- if (0 == errorCode) {
+  if (0 == errorCode) {
     Serial.println ("can configuration ok") ;
   }else{
     Serial.print ("Error can configuration: 0x") ;

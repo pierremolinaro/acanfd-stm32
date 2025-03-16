@@ -1,6 +1,7 @@
 //-----------------------------------------------------------------
-// This demo runs on NUCLEO_G474RE
-// The can clock frequency is 168 MHz.
+// This demo runs on WeActStudio STM32G474CEU6 board
+// https://github.com/WeActStudio/WeActStudio.STM32G474CoreBoard
+// The can clock frequency is 170 MHz.
 // The 3 FDCAN modules are configured in external loop back mode: it
 // internally receives every CAN frame it sends, and emitted frames
 // can be observed on TxCAN pins. No external hardware is required.
@@ -10,8 +11,8 @@
 //   - fdcan3: PA_15
 //-----------------------------------------------------------------
 
-#ifndef ARDUINO_NUCLEO_G474RE
-  #error This sketch runs on NUCLEO-G474RE Nucleo-64 board
+#ifndef ARDUINO_WEACT_G474CE
+  #error This sketch runs on WeActStudio STM32G474CEU6 board
 #endif
 
 //-----------------------------------------------------------------

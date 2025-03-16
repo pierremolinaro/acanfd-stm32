@@ -1,27 +1,41 @@
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 #pragma once
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
-#include <ACANFD_DataBitRateFactor.h>
+#include <Arduino.h>
+
+//------------------------------------------------------------------------------
+
+#ifdef ARDUINO_NUCLEO_H743ZI2
+  #include "ACANFD_STM32_NUCLEO_H743ZI2-settings.h"
+#elif defined (ARDUINO_NUCLEO_G431KB)
+  #include "ACANFD_STM32_NUCLEO_G431KB-settings.h"
+#elif defined (ARDUINO_NUCLEO_G474RE)
+  #include "ACANFD_STM32_NUCLEO_G474RE-settings.h"
+#elif defined (ARDUINO_WEACT_G474CE)
+  #include "ACANFD_STM32_WEACT_G474CE-settings.h"
+#elif defined (ARDUINO_NUCLEO_G0B1RE)
+  #include "ACANFD_STM32_NUCLEO_G0B1RE-settings.h"
+#elif defined (ARDUINO_NUCLEO_H723ZG)
+  #include "ACANFD_STM32_NUCLEO_H723ZG-settings.h"
+#else
+  #error "Unhandled Nucleo Board"
+#endif
+
+//------------------------------------------------------------------------------
+
 #include <ACANFD_STM32_Filters.h>
+#include <ACANFD_STM32_DataBitRateFactor.h>
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 uint32_t fdcanClock (void) ;
 
-//----------------------------------------------------------------------------------------
-//  FDCAN RAM MESSAGE SIZE, for module with programmable RAM sections
-//----------------------------------------------------------------------------------------
-
-#ifdef ARDUINO_NUCLEO_H743ZI2
-  static const uint32_t FDCAN_MESSAGE_RAM_WORD_SIZE = 2560 ;
-#endif
-
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 //  ACANFD_STM32_Settings class
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 class ACANFD_STM32_Settings {
 
@@ -71,7 +85,6 @@ class ACANFD_STM32_Settings {
 //--- Transceiver Delay Compensation
   public: uint32_t mTransceiverDelayCompensation = 0 ; // 0 ... 127
 
-  public: bool mTripleSampling = false ; // true --> triple sampling, false --> single sampling
   public: bool mBitSettingOk = true ; // The above configuration is correct
 
 //--- Module Mode
@@ -144,7 +157,7 @@ class ACANFD_STM32_Settings {
   public: static const uint32_t kArbitrationSJWIsZero                         = 1U <<  6 ;
   public: static const uint32_t kArbitrationSJWIsGreaterThan128               = 1U <<  7 ;
   public: static const uint32_t kArbitrationSJWIsGreaterThanPhaseSegment2     = 1U <<  8 ;
-  public: static const uint32_t kArbitrationPhaseSegment1Is1AndTripleSampling = 1U <<  9 ;
+
   public: static const uint32_t kDataPhaseSegment1IsZero                      = 1U << 10 ;
   public: static const uint32_t kDataPhaseSegment1IsGreaterThan32             = 1U << 11 ;
   public: static const uint32_t kDataPhaseSegment2IsLowerThan2                = 1U << 12 ;
@@ -158,7 +171,11 @@ class ACANFD_STM32_Settings {
   //  Extension for programmable RAM section CANFD modules
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-  #ifdef ARDUINO_NUCLEO_H743ZI2
+  #ifndef HAS_PROGRAMMABLE_FDCAN_RAM_SECTIONS
+    #error "HAS_PROGRAMMABLE_FDCAN_RAM_SECTIONS is not defined"
+  #endif
+
+  #if HAS_PROGRAMMABLE_FDCAN_RAM_SECTIONS == true
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -210,4 +227,4 @@ class ACANFD_STM32_Settings {
 
 } ;
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------

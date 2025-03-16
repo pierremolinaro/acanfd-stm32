@@ -1,24 +1,9 @@
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 #include <ACANFD_STM32_Settings.h>
 #include <algorithm>
 
-//----------------------------------------------------------------------------------------
-
-#ifdef ARDUINO_NUCLEO_H743ZI2
-  #include <stm32h7xx_ll_rcc.h>
-  static const uint32_t fdcanClockSource = LL_RCC_FDCAN_CLKSOURCE_PLL1Q ; // Select PLL1Q
-#elif defined (ARDUINO_NUCLEO_G431KB)
-  #include <stm32g4xx_ll_rcc.h>
-  static const uint32_t fdcanClockSource = RCC_FDCANCLKSOURCE_PCLK1 ; // Select PCLK1
-#elif defined (ARDUINO_NUCLEO_G474RE)
-  #include <stm32g4xx_ll_rcc.h>
-  static const uint32_t fdcanClockSource = RCC_FDCANCLKSOURCE_PCLK1 ; // Select PCLK1
-#else
-  #error "Unhandled Nucleo Board"
-#endif
-
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 //    BIT DECOMPOSITION CONSTRAINTS
 // Data bit Rate:
 //    - The CAN bit time may be programmed in the range of 4 to 49 time quanta.
@@ -28,7 +13,7 @@
 // Data bit Rate:
 //    - The CAN bit time may be programmed in the range of 4 to 385 time quanta.
 //    - The CAN time quantum may be programmed in the range of 1 to 512 GCLK_CAN periods.
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 static const uint32_t MIN_DATA_PS1 = 2 ;
 static const uint32_t MAX_DATA_PS1 = 32 ;
@@ -42,7 +27,7 @@ static const uint32_t MAX_DATA_TQ_COUNT = 1 + MAX_DATA_PS1 + MAX_DATA_PS2 ;
 
 static const uint32_t MAX_TRANSCEIVER_DELAY_COMPENSATION = 127 ;
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 static const uint32_t MIN_ARBITRATION_PS1 = 2 ;
 static const uint32_t MAX_ARBITRATION_PS1 = 256 ;
@@ -53,19 +38,12 @@ static const uint32_t MAX_ARBITRATION_SJW = MAX_ARBITRATION_PS2 ;
 
 static const uint32_t MAX_ARBITRATION_TQ_COUNT = 1 + MAX_ARBITRATION_PS1 + MAX_ARBITRATION_PS2 ;
 
-//----------------------------------------------------------------------------------------
 
 static const uint32_t MAX_BRP = 32 ;
 
-//----------------------------------------------------------------------------------------
-
-uint32_t fdcanClock (void) {
-  return HAL_RCC_GetPCLK1Freq () ;
-}
-
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 //    CONSTRUCTORS
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 ACANFD_STM32_Settings::ACANFD_STM32_Settings (const uint32_t inDesiredArbitrationBitRate,
                                               const DataBitRateFactor inDataBitRateFactor,
@@ -73,7 +51,7 @@ ACANFD_STM32_Settings::ACANFD_STM32_Settings (const uint32_t inDesiredArbitratio
 ACANFD_STM32_Settings (inDesiredArbitrationBitRate, 75, inDataBitRateFactor, 75, inTolerancePPM) {
 }
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 ACANFD_STM32_Settings::ACANFD_STM32_Settings (const uint32_t inDesiredArbitrationBitRate,
                                               const uint32_t inDesiredArbitrationSamplePoint,
@@ -82,17 +60,6 @@ ACANFD_STM32_Settings::ACANFD_STM32_Settings (const uint32_t inDesiredArbitratio
                                               const uint32_t inTolerancePPM) :
 mDesiredArbitrationBitRate (inDesiredArbitrationBitRate),
 mDataBitRateFactor (inDataBitRateFactor) {
-//---------------------------------------------- If CAN clock is not enabled, enable it
-  if (!__HAL_RCC_FDCAN_IS_CLK_ENABLED ()) { // Is not enabled ?
-  //--- Enable CAN clock
-    __HAL_RCC_FDCAN_CLK_ENABLE () ;
-  //--- Reset CAN peripherals
-    __HAL_RCC_FDCAN_FORCE_RESET () ;
-    __HAL_RCC_FDCAN_RELEASE_RESET () ;
-  //--- Select CAN clock
-    LL_RCC_SetFDCANClockSource (fdcanClockSource) ;
-  }
-
 //---------------------------------------------- Configure CANFD bit decomposition
   const uint32_t dataBitRate = inDesiredArbitrationBitRate * uint32_t (inDataBitRateFactor) ;
   uint32_t dataTQCount = std::min (
@@ -103,6 +70,8 @@ mDataBitRateFactor (inDataBitRateFactor) {
   mBitRatePrescaler = MAX_BRP ; // Setting for slowest bitrate
   uint32_t bestDataTQCount = dataTQCount ; // Setting for slowest bitrate
   const uint32_t FDCAN_ROOT_CLOCK_FREQUENCY = fdcanClock () ;
+//   Serial.print ("FDCAN_ROOT_CLOCK_FREQUENCY = ") ;
+//   Serial.println (FDCAN_ROOT_CLOCK_FREQUENCY) ;
   uint32_t BRP = FDCAN_ROOT_CLOCK_FREQUENCY / (dataBitRate * dataTQCount) ;
 //--- Loop for finding best BRP and best TQCount
   while ((smallestDifference > 0) && (dataTQCount >= MIN_DATA_TQ_COUNT) && (BRP <= MAX_BRP)) {
@@ -115,7 +84,7 @@ mDataBitRateFactor (inDataBitRateFactor) {
         bestDataTQCount = dataTQCount ;
       }
     }
-  //--- Compute difference using BRP+1 (caution: BRP+1 should be <= 32)
+  //--- Compute difference using BRP+1 (caution: BRP+1 should be <= MAX_BRP)
     if (BRP < MAX_BRP) {
       const uint32_t difference = dataBitRate * dataTQCount * (BRP + 1) - FDCAN_ROOT_CLOCK_FREQUENCY ; // difference is always >= 0
       if (difference < smallestDifference) {
@@ -182,8 +151,6 @@ mDataBitRateFactor (inDataBitRateFactor) {
   }
 //--- Set RJW to PS2
   mArbitrationSJW = mArbitrationPhaseSegment2 ;
-//--- Triple sampling ?
-  mTripleSampling = (mDesiredArbitrationBitRate <= 125000) && (mArbitrationPhaseSegment1 >= 2) ;
 //-------------------------- Final check of the configuration
   const uint32_t W = bestArbitrationTQCount * mDesiredArbitrationBitRate * mBitRatePrescaler ;
   const uint64_t diff = (FDCAN_ROOT_CLOCK_FREQUENCY > W) ? (FDCAN_ROOT_CLOCK_FREQUENCY - W) : (W - FDCAN_ROOT_CLOCK_FREQUENCY) ;
@@ -191,7 +158,7 @@ mDataBitRateFactor (inDataBitRateFactor) {
   mBitSettingOk = (diff * ppm) <= (uint64_t (W) * inTolerancePPM) ;
 } ;
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 uint32_t ACANFD_STM32_Settings::actualArbitrationBitRate (void) const {
   const uint32_t FDCAN_ROOT_CLOCK_FREQUENCY = fdcanClock () ;
@@ -199,7 +166,7 @@ uint32_t ACANFD_STM32_Settings::actualArbitrationBitRate (void) const {
   return FDCAN_ROOT_CLOCK_FREQUENCY / (mBitRatePrescaler * TQCount) ;
 }
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 uint32_t ACANFD_STM32_Settings::actualDataBitRate (void) const {
   const uint32_t FDCAN_ROOT_CLOCK_FREQUENCY = fdcanClock () ;
@@ -207,7 +174,7 @@ uint32_t ACANFD_STM32_Settings::actualDataBitRate (void) const {
   return FDCAN_ROOT_CLOCK_FREQUENCY / (mBitRatePrescaler * TQCount) ;
 }
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 bool ACANFD_STM32_Settings::exactArbitrationBitRate (void) const {
   const uint32_t FDCAN_ROOT_CLOCK_FREQUENCY = fdcanClock () ;
@@ -215,7 +182,7 @@ bool ACANFD_STM32_Settings::exactArbitrationBitRate (void) const {
   return FDCAN_ROOT_CLOCK_FREQUENCY == (mBitRatePrescaler * mDesiredArbitrationBitRate * TQCount) ;
 }
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 bool ACANFD_STM32_Settings::exactDataBitRate (void) const {
   const uint32_t FDCAN_ROOT_CLOCK_FREQUENCY = fdcanClock () ;
@@ -223,7 +190,7 @@ bool ACANFD_STM32_Settings::exactDataBitRate (void) const {
   return FDCAN_ROOT_CLOCK_FREQUENCY == (mBitRatePrescaler * mDesiredArbitrationBitRate * TQCount * uint32_t (mDataBitRateFactor)) ;
 }
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 uint32_t ACANFD_STM32_Settings::ppmFromWishedBitRate (void) const {
   const uint32_t FDCAN_ROOT_CLOCK_FREQUENCY = fdcanClock () ;
@@ -234,16 +201,16 @@ uint32_t ACANFD_STM32_Settings::ppmFromWishedBitRate (void) const {
   return uint32_t ((diff * ppm) / W) ;
 }
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 float ACANFD_STM32_Settings::arbitrationSamplePointFromBitStart (void) const {
   const uint32_t TQCount = 1 /* Sync Seg */ + mArbitrationPhaseSegment1 + mArbitrationPhaseSegment2 ;
-  const uint32_t samplePoint = 1 /* Sync Seg */ + mArbitrationPhaseSegment1 - mTripleSampling ;
+  const uint32_t samplePoint = 1 /* Sync Seg */ + mArbitrationPhaseSegment1 ;
   const float partPerCent = 100.0 ;
   return (float (samplePoint) * partPerCent) / float (TQCount) ;
 }
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 float ACANFD_STM32_Settings::dataSamplePointFromBitStart (void) const {
   const uint32_t TQCount = 1 /* Sync Seg */ + mDataPhaseSegment1 + mDataPhaseSegment2 ;
@@ -252,7 +219,7 @@ float ACANFD_STM32_Settings::dataSamplePointFromBitStart (void) const {
   return (float (samplePoint) * partPerCent) / float (TQCount) ;
 }
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 uint32_t ACANFD_STM32_Settings::checkBitSettingConsistency (void) const {
   uint32_t errorCode = 0 ; // Means no error
@@ -263,8 +230,6 @@ uint32_t ACANFD_STM32_Settings::checkBitSettingConsistency (void) const {
   }
   if (mArbitrationPhaseSegment1 < MIN_ARBITRATION_PS1) {
     errorCode |= kArbitrationPhaseSegment1IsZero ;
-  }else if ((mArbitrationPhaseSegment1 == 1) && mTripleSampling) {
-    errorCode |= kArbitrationPhaseSegment1Is1AndTripleSampling ;
   }else if (mArbitrationPhaseSegment1 > MAX_ARBITRATION_PS1) {
     errorCode |= kArbitrationPhaseSegment1IsGreaterThan256 ;
   }
@@ -305,5 +270,5 @@ uint32_t ACANFD_STM32_Settings::checkBitSettingConsistency (void) const {
   return errorCode ;
 }
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 

@@ -1,47 +1,47 @@
+//------------------------------------------------------------------------------
+//    THIS FILE IS SPECIFIC TO FDCAN MODULES WITH PROGRAMMABLE RAM SECTIONS
+//------------------------------------------------------------------------------
+
 #include <ACANFD_STM32_from_cpp.h>
 
-//----------------------------------------------------------------------------------------
-//    THIS FILE IS SPECIFIC TO NUCLEO-H743ZI2
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
-#ifdef ARDUINO_NUCLEO_H743ZI2
+#ifndef HAS_PROGRAMMABLE_FDCAN_RAM_SECTIONS
+  #error "HAS_PROGRAMMABLE_FDCAN_RAM_SECTIONS is not defined"
+#endif
 
-//----------------------------------------------------------------------------------------
+#if HAS_PROGRAMMABLE_FDCAN_RAM_SECTIONS == true
+
+//------------------------------------------------------------------------------
 //    Constructor
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 ACANFD_STM32::ACANFD_STM32 (volatile FDCAN_GlobalTypeDef * inPeripheralModuleBasePointer,
                             const uint32_t inMessageRAMWordStartOffset,
                             const uint32_t inMessageRamAllocatedWordSize,
-                            const IRQn_Type inIRQ0,
-                            const IRQn_Type inIRQ1,
-                            const ACANFD_STM32::PinPort inTxPinArray [],
-                            const uint8_t inTxPinCount,
-                            const ACANFD_STM32::PinPort inRxPinArray [],
-                            const uint8_t inRxPinCount) :
+                            const std::optional <IRQs> inIRQs,
+                            const std::initializer_list <ACANFD_STM32::PinPort> & inTxPinArray,
+                            const std::initializer_list <ACANFD_STM32::PinPort> & inRxPinArray) :
 mMessageRAMStartWordOffset (inMessageRAMWordStartOffset),
 mMessageRamAllocatedWordSize (inMessageRamAllocatedWordSize),
 mTxPinArray (inTxPinArray),
 mRxPinArray (inRxPinArray),
-mTxPinCount (inTxPinCount),
-mRxPinCount (inRxPinCount),
-mIRQ0 (inIRQ0),
-mIRQ1 (inIRQ1),
+mIRQs (inIRQs),
 mPeripheralPtr (inPeripheralModuleBasePointer) {
 }
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 //    beginFD method
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 uint32_t ACANFD_STM32::beginFD (const ACANFD_STM32_Settings & inSettings,
                                 const ACANFD_STM32_ExtendedFilters & inExtendedFilters) {
   return beginFD (inSettings, ACANFD_STM32_StandardFilters (), inExtendedFilters) ;
 }
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 //    beginFD method
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 uint32_t ACANFD_STM32::beginFD (const ACANFD_STM32_Settings & inSettings,
                                 const ACANFD_STM32_StandardFilters & inStandardFilters,
@@ -77,29 +77,29 @@ uint32_t ACANFD_STM32::beginFD (const ACANFD_STM32_Settings & inSettings,
 
 
 //---------------------------------------------- Configure TxPin
-  uint32_t idx = 0 ;
-  bool pinFound = inSettings.mTxPin == 255 ;
-  while (!pinFound && (idx < mTxPinCount)) {
-    pinFound = mTxPinArray [idx].mPinName == inSettings.mTxPin ;
+  bool pinFound = inSettings.mTxPin == 255 ; // Use default TxPin ?
+  auto txPinIterator = mTxPinArray.begin () ;
+  while (!pinFound && (txPinIterator != mTxPinArray.end ())) {
+    pinFound = txPinIterator->mPinName == inSettings.mTxPin ;
     if (!pinFound) {
-      idx += 1 ;
+      txPinIterator ++ ;
     }
   }
   if (pinFound) {
-    GPIO_TypeDef * gpio = set_GPIO_Port_Clock (mRxPinArray [idx].mPinName >> 4) ;
-    const uint32_t pinIndex = mTxPinArray [idx].mPinName & 0x0F ;
-    const uint32_t txPinMask = 1U << pinIndex ;
+    GPIO_TypeDef * gpio = set_GPIO_Port_Clock (txPinIterator->mPinName >> 4) ;
+    const uint32_t pinIndex = txPinIterator->mPinName & 0x0F ;
+    const uint32_t txPinMask = uint32_t (1) << pinIndex ;
     LL_GPIO_SetPinMode  (gpio, txPinMask, LL_GPIO_MODE_ALTERNATE) ;
     const uint32_t output = inSettings.mOpenCollectorOutput
       ? LL_GPIO_OUTPUT_OPENDRAIN
       : LL_GPIO_OUTPUT_PUSHPULL
     ;
     LL_GPIO_SetPinOutputType (gpio, txPinMask, output) ;
-    LL_GPIO_SetPinSpeed (gpio, txPinMask, LL_GPIO_SPEED_FREQ_VERY_HIGH) ;
+    LL_GPIO_SetPinSpeed (gpio, txPinMask, LL_GPIO_SPEED_HIGH) ;
     if (pinIndex < 8) {
-      LL_GPIO_SetAFPin_0_7 (gpio, txPinMask, mTxPinArray [idx].mPinAlternateMode) ;
+      LL_GPIO_SetAFPin_0_7 (gpio, txPinMask, txPinIterator->mPinAlternateMode) ;
     }else{
-      LL_GPIO_SetAFPin_8_15 (gpio, txPinMask, mTxPinArray [idx].mPinAlternateMode) ;
+      LL_GPIO_SetAFPin_8_15 (gpio, txPinMask, txPinIterator->mPinAlternateMode) ;
     }
   }else{ // Tx Pin not found
     errorFlags |= kInvalidTxPin ;
@@ -107,18 +107,18 @@ uint32_t ACANFD_STM32::beginFD (const ACANFD_STM32_Settings & inSettings,
 
 
 //---------------------------------------------- Configure RxPin
-  idx = 0 ;
-  pinFound = inSettings.mRxPin == 255 ;
-  while (!pinFound && (idx < mRxPinCount)) {
-    pinFound = mRxPinArray [idx].mPinName == inSettings.mRxPin ;
+  auto rxPinIterator = mRxPinArray.begin () ;
+  pinFound = inSettings.mRxPin == 255 ; // Use default RxPin ?
+  while (!pinFound && (rxPinIterator != mRxPinArray.end ())) {
+    pinFound = rxPinIterator->mPinName == inSettings.mRxPin ;
     if (!pinFound) {
-      idx += 1 ;
+      rxPinIterator ++ ;
     }
   }
   if (pinFound) {
-    GPIO_TypeDef * gpio = set_GPIO_Port_Clock (mRxPinArray [idx].mPinName >> 4) ;
-    const uint32_t pinIndex = mRxPinArray [idx].mPinName & 0x0F ;
-    const uint32_t rxPinMask = 1U << pinIndex ;
+    GPIO_TypeDef * gpio = set_GPIO_Port_Clock (rxPinIterator->mPinName >> 4) ;
+    const uint32_t pinIndex = rxPinIterator->mPinName & 0x0F ;
+    const uint32_t rxPinMask = uint32_t (1) << pinIndex ;
     const uint32_t input = inSettings.mInputPullup
       ? LL_GPIO_PULL_UP
       : LL_GPIO_PULL_NO
@@ -126,9 +126,9 @@ uint32_t ACANFD_STM32::beginFD (const ACANFD_STM32_Settings & inSettings,
     LL_GPIO_SetPinPull (gpio, rxPinMask, input) ;
     LL_GPIO_SetPinMode (gpio, rxPinMask, LL_GPIO_MODE_ALTERNATE) ;
     if (pinIndex < 8) {
-      LL_GPIO_SetAFPin_0_7 (gpio, rxPinMask, mRxPinArray [idx].mPinAlternateMode) ;
+      LL_GPIO_SetAFPin_0_7 (gpio, rxPinMask, rxPinIterator->mPinAlternateMode) ;
     }else{
-      LL_GPIO_SetAFPin_8_15 (gpio, rxPinMask, mRxPinArray [idx].mPinAlternateMode) ;
+      LL_GPIO_SetAFPin_8_15 (gpio, rxPinMask, rxPinIterator->mPinAlternateMode) ;
     }
   }else{ // Rx Pin not found
     errorFlags |= kInvalidRxPin ;
@@ -302,54 +302,68 @@ uint32_t ACANFD_STM32::beginFD (const ACANFD_STM32_Settings & inSettings,
     mNonMatchingStandardMessageCallBack = inSettings.mNonMatchingStandardMessageCallBack ;
     mNonMatchingExtendedMessageCallBack = inSettings.mNonMatchingExtendedMessageCallBack ;
   //------------------------------------------------------ Interrupts
-    uint32_t interruptRegister = FDCAN_IE_TCE ; // Enable Transmission Completed Interrupt
-    interruptRegister |= FDCAN_IE_RF0NE ; // Receive FIFO 0 Non Empty
-    interruptRegister |= FDCAN_IE_RF1NE ; // Receive FIFO 1 Non Empty
-    mPeripheralPtr->IE = interruptRegister ;
-    mPeripheralPtr->TXBTIE = ((1U << inSettings.mHardwareTransmitTxFIFOSize) - 1U) << inSettings.mHardwareDedicacedTxBufferCount ;
-    mPeripheralPtr->ILS = FDCAN_ILS_RF1NL | FDCAN_ILS_RF0NL ; // Received message on IRQ1, others on IRQ0
-    NVIC_EnableIRQ (mIRQ0) ;
-    NVIC_EnableIRQ (mIRQ1) ;
-    mPeripheralPtr->ILE = FDCAN_ILE_EINT1 | FDCAN_ILE_EINT0 ;
+    if (mIRQs) {
+      uint32_t interruptRegister = FDCAN_IE_TCE ; // Enable Transmission Completed Interrupt
+      interruptRegister |= FDCAN_IE_RF0NE ; // Receive FIFO 0 Non Empty
+      interruptRegister |= FDCAN_IE_RF1NE ; // Receive FIFO 1 Non Empty
+      mPeripheralPtr->IE = interruptRegister ;
+      mPeripheralPtr->TXBTIE = ((1U << inSettings.mHardwareTransmitTxFIFOSize) - 1U) << inSettings.mHardwareDedicacedTxBufferCount ;
+      mPeripheralPtr->ILS = FDCAN_ILS_RF1NL | FDCAN_ILS_RF0NL ; // Received message on IRQ1, others on IRQ0
+      NVIC_EnableIRQ (mIRQs.value ().mIRQ0) ;
+      NVIC_EnableIRQ (mIRQs.value ().mIRQ1) ;
+      mPeripheralPtr->ILE = FDCAN_ILE_EINT1 | FDCAN_ILE_EINT0 ;
+    }else{
+      mPeripheralPtr->IE = 0 ;
+    }
 
   //------------------------------------------------------ Activate CAN controller
     mPeripheralPtr->CCCR = FDCAN_CCCR_INIT | FDCAN_CCCR_CCE | cccr ;
     mPeripheralPtr->CCCR = cccr ; // Reset INIT bit
-    while ((mPeripheralPtr->CCCR & FDCAN_CCCR_INIT) != 0) {
-//      mPeripheralPtr->CCCR = cccr ;
-    }
+    while ((mPeripheralPtr->CCCR & FDCAN_CCCR_INIT) != 0) { }
   }
-//--- Return error code (0 --> no error)
+//--- Return error flags (0 --> no error)
   return errorFlags ;
 }
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 //    end
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 void ACANFD_STM32::end (void) {
 //--- Disable interrupts
-  NVIC_DisableIRQ (mIRQ0);
-  NVIC_DisableIRQ (mIRQ1);
+  if (mIRQs) {
+    NVIC_DisableIRQ (mIRQs.value ().mIRQ0) ;
+    NVIC_DisableIRQ (mIRQs.value ().mIRQ1) ;
+  }
 //--- Free receive FIFOs
   mDriverReceiveFIFO0.free () ;
   mDriverReceiveFIFO1.free () ;
 //--- Free transmit FIFO
   mDriverTransmitFIFO.free () ;
-//--- Free callback function array
-//   mFIFO0CallBackArray.free () ;
-//   mFIFO1CallBackArray.free () ;
 }
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//   poll
+//------------------------------------------------------------------------------
+
+void ACANFD_STM32::poll (void) {
+  if (!mIRQs) {
+    noInterrupts () ;
+      isr0 () ;
+      isr1 () ;
+    interrupts () ;
+  }
+}
+
+//------------------------------------------------------------------------------
 
 uint32_t ACANFD_STM32::messageRamRequiredMinimumSize (void) {
   return mMessageRamRequiredWordSize ;
 }
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 //   RECEPTION
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 bool ACANFD_STM32::availableFD0 (void) {
   noInterrupts () ;
@@ -358,7 +372,7 @@ bool ACANFD_STM32::availableFD0 (void) {
   return hasMessage ;
 }
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 bool ACANFD_STM32::receiveFD0 (CANFDMessage & outMessage) {
   noInterrupts () ;
@@ -367,7 +381,7 @@ bool ACANFD_STM32::receiveFD0 (CANFDMessage & outMessage) {
   return hasMessage ;
 }
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 bool ACANFD_STM32::availableFD1 (void) {
   noInterrupts () ;
@@ -376,7 +390,7 @@ bool ACANFD_STM32::availableFD1 (void) {
   return hasMessage ;
 }
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 bool ACANFD_STM32::receiveFD1 (CANFDMessage & outMessage) {
   noInterrupts () ;
@@ -385,7 +399,7 @@ bool ACANFD_STM32::receiveFD1 (CANFDMessage & outMessage) {
   return hasMessage ;
 }
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 bool ACANFD_STM32::dispatchReceivedMessage (void) {
   CANFDMessage message ;
@@ -401,7 +415,7 @@ bool ACANFD_STM32::dispatchReceivedMessage (void) {
   return result ;
 }
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 bool ACANFD_STM32::dispatchReceivedMessageFIFO0 (void) {
   CANFDMessage message ;
@@ -412,7 +426,7 @@ bool ACANFD_STM32::dispatchReceivedMessageFIFO0 (void) {
   return result ;
 }
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 bool ACANFD_STM32::dispatchReceivedMessageFIFO1 (void) {
   CANFDMessage message ;
@@ -423,7 +437,7 @@ bool ACANFD_STM32::dispatchReceivedMessageFIFO1 (void) {
   return result ;
 }
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 void ACANFD_STM32::internalDispatchReceivedMessage (const CANFDMessage & inMessage) {
   const uint32_t filterIndex = inMessage.idx ;
@@ -446,9 +460,9 @@ void ACANFD_STM32::internalDispatchReceivedMessage (const CANFDMessage & inMessa
   }
 }
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 //   EMISSION
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 bool ACANFD_STM32::sendBufferNotFullForIndex (const uint32_t inMessageIndex) {
   bool canSend = false ;
@@ -466,7 +480,7 @@ bool ACANFD_STM32::sendBufferNotFullForIndex (const uint32_t inMessageIndex) {
   return canSend ;
 }
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 uint32_t ACANFD_STM32::tryToSendReturnStatusFD (const CANFDMessage & inMessage) {
   noInterrupts () ;
@@ -502,7 +516,7 @@ uint32_t ACANFD_STM32::tryToSendReturnStatusFD (const CANFDMessage & inMessage) 
   return sendStatus ;
 }
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 void ACANFD_STM32::writeTxBuffer (const CANFDMessage & inMessage, const uint32_t inTxBufferIndex) {
 //--- Compute Tx Buffer address
@@ -534,7 +548,7 @@ void ACANFD_STM32::writeTxBuffer (const CANFDMessage & inMessage, const uint32_t
   }else{
     lengthCode = inMessage.len ;
   }
-  uint32_t element1 = uint32_t (lengthCode) << 16 ;
+  uint32_t element1 = lengthCode << 16 ;
 //---
   const uint32_t lg = ACANFD_STM32_Settings::frameDataByteCountForPayload (mHardwareTxBufferPayload) ;
   const uint32_t sentCount = (lg < inMessage.len) ? lg : inMessage.len ;
@@ -570,9 +584,9 @@ void ACANFD_STM32::writeTxBuffer (const CANFDMessage & inMessage, const uint32_t
   mPeripheralPtr->TXBAR = 1U << inTxBufferIndex ;
 }
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 //   INTERRUPT SERVICE ROUTINES
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 static void getMessageFrom (const uint32_t * inMessageRamAddress,
                             const ACANFD_STM32_Settings::Payload inPayLoad,
@@ -619,7 +633,7 @@ static void getMessageFrom (const uint32_t * inMessageRamAddress,
   }
 }
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 void ACANFD_STM32::isr0 (void) {
 //--- Interrupt Acknowledge
@@ -639,7 +653,7 @@ void ACANFD_STM32::isr0 (void) {
   }
 }
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 void ACANFD_STM32::isr1 (void) {
 //--- Interrupt Acknowledge
@@ -687,7 +701,7 @@ void ACANFD_STM32::isr1 (void) {
   }
 }
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 //--- Status Flags (returns 0 if no error)
 //  Bit 0 : hardware RxFIFO 0 overflow
 //  Bit 1 : driver RxFIFO 0 overflow
@@ -723,13 +737,13 @@ uint32_t ACANFD_STM32::statusFlags (void) const {
   return result ;
 }
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 ACANFD_STM32::BusStatus::BusStatus (volatile FDCAN_GlobalTypeDef * inModulePtr) :
 mErrorCount (uint16_t (inModulePtr->ECR)),
 mProtocolStatus (inModulePtr->PSR) {
 }
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 #endif

@@ -1,25 +1,54 @@
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//    THIS FILE IS SPECIFIC TO FDCAN MODULES WITH FIXED SIZE RAM SECTIONS
+//------------------------------------------------------------------------------
 
 #pragma once
 
-//----------------------------------------------------------------------------------------
-//  ACANFD_STM32 class for NUCLEO-G4
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+
+#include <ACANFD_STM32_Settings.h>
+#include <ACANFD_STM32_FIFO.h>
+#include <ACANFD_STM32_CANFDMessage.h>
+
+#include <optional>
+
+//------------------------------------------------------------------------------
 
 class ACANFD_STM32 {
 
-//----------------------------------------------------------------------------------------
-//  TX and Rx pins available port
-//----------------------------------------------------------------------------------------
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  //  TX and Rx pins available port
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-  public: class PinPort {
+  public: class PinPort final {
     public: const uint8_t mPinName ;
     public: const uint8_t mPinAlternateMode ;
+
+    public: PinPort (const uint8_t inPinName,
+                     const uint8_t inPinAlternateMode) :
+    mPinName (inPinName),
+    mPinAlternateMode (inPinAlternateMode) {
+    }
   } ;
 
-//----------------------------------------------------------------------------------------
-//  Bus Status
-//----------------------------------------------------------------------------------------
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  //  IRQs
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+  public: class IRQs final {
+    public: const IRQn_Type mIRQ0 ;
+    public: const IRQn_Type mIRQ1 ;
+
+    public: IRQs (const IRQn_Type inIRQ0,
+                  const IRQn_Type inIRQ1) :
+    mIRQ0 (inIRQ0),
+    mIRQ1 (inIRQ1) {
+    }
+  } ;
+
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  //  Bus Status
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
   public: class BusStatus {
     public: BusStatus (volatile FDCAN_GlobalTypeDef * inModulePtr) ;
@@ -31,20 +60,17 @@ class ACANFD_STM32 {
     public: inline uint8_t transceiverDelayCompensationOffset (void) const { return uint8_t (mProtocolStatus >> 16) & 0x7F ; }
   } ;
 
-//----------------------------------------------------------------------------------------
-//  ACANFD_STM32 class
-//----------------------------------------------------------------------------------------
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  //  ACANFD_STM32 class
+  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 //-------------------- Constructor
 
   public: ACANFD_STM32 (volatile FDCAN_GlobalTypeDef * inPeripheralModuleBasePointer,
                         const uint32_t inRamBaseAddress,
-                        const IRQn_Type inIRQ0,
-                        const IRQn_Type inIRQ1,
-                        const ACANFD_STM32::PinPort inTxPinArray [],
-                        const uint8_t inTxPinCount,
-                        const ACANFD_STM32::PinPort inRxPinArray [],
-                        const uint8_t inRxPinCount) ;
+                        const std::optional <IRQs> inIRQs,
+                        const std::initializer_list <ACANFD_STM32::PinPort> & inTxPinArray,
+                        const std::initializer_list <ACANFD_STM32::PinPort> & inRxPinArray) ;
 
 //-------------------- begin; returns a result code :
 //  0 : Ok
@@ -97,6 +123,9 @@ class ACANFD_STM32 {
 //--- Driver Transmit buffer
   protected: ACANFD_STM32_FIFO mDriverTransmitFIFO ;
 
+//--- Poll
+  public: void poll (void) ;
+
 //--- Driver receive FIFO 0
   protected: ACANFD_STM32_FIFO mDriverReceiveFIFO0 ;
   public: uint32_t driverReceiveFIFO0Size (void) { return mDriverReceiveFIFO0.size () ; }
@@ -114,12 +143,9 @@ class ACANFD_STM32 {
 
 //--- Constant public properties
   public: const uint32_t mRamBaseAddress ;
-  public: const ACANFD_STM32::PinPort * mTxPinArray ;
-  public: const ACANFD_STM32::PinPort * mRxPinArray ;
-  public: const uint8_t mTxPinCount ;
-  public: const uint8_t mRxPinCount ;
-  public: const IRQn_Type mIRQ0 ;
-  public: const IRQn_Type mIRQ1 ;
+  public: const std::initializer_list <ACANFD_STM32::PinPort> mTxPinArray ;
+  public: const std::initializer_list <ACANFD_STM32::PinPort> mRxPinArray ;
+  public: const std::optional <IRQs> mIRQs ;
 
 //--- Protected properties
   protected: volatile FDCAN_GlobalTypeDef * mPeripheralPtr ;
@@ -152,4 +178,4 @@ class ACANFD_STM32 {
 
 } ;
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------

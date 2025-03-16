@@ -1,10 +1,10 @@
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 #include <ACANFD_STM32_Filters.h>
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 //    Standard filters
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 bool ACANFD_STM32_StandardFilters::addSingle (const uint16_t inIdentifier,
                                                const ACANFD_STM32_FilterAction inAction,
@@ -12,7 +12,7 @@ bool ACANFD_STM32_StandardFilters::addSingle (const uint16_t inIdentifier,
   return addDual (inIdentifier, inIdentifier, inAction, inCallBack) ;
 }
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 bool ACANFD_STM32_StandardFilters::addDual (const uint16_t inIdentifier1,
                                              const uint16_t inIdentifier2,
@@ -30,7 +30,7 @@ bool ACANFD_STM32_StandardFilters::addDual (const uint16_t inIdentifier1,
   return ok ;
 }
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 bool ACANFD_STM32_StandardFilters::addRange (const uint16_t inIdentifier1,
                                               const uint16_t inIdentifier2,
@@ -47,7 +47,7 @@ bool ACANFD_STM32_StandardFilters::addRange (const uint16_t inIdentifier1,
   return ok ;
 }
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 bool ACANFD_STM32_StandardFilters::addClassic (const uint16_t inIdentifier,
                                                 const uint16_t inMask,
@@ -67,13 +67,13 @@ bool ACANFD_STM32_StandardFilters::addClassic (const uint16_t inIdentifier,
   return ok ;
 }
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 //    Extended filters
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 static const uint32_t MAX_EXTENDED_IDENTIFIER = 0x1FFFFFFF ;
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 bool ACANFD_STM32_ExtendedFilters::addSingle (const uint32_t inIdentifier,
                                                const ACANFD_STM32_FilterAction inAction,
@@ -81,7 +81,7 @@ bool ACANFD_STM32_ExtendedFilters::addSingle (const uint32_t inIdentifier,
   return addDual (inIdentifier, inIdentifier, inAction, inCallBack) ;
 }
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 bool ACANFD_STM32_ExtendedFilters::addDual (const uint32_t inIdentifier1,
                                              const uint32_t inIdentifier2,
@@ -101,7 +101,7 @@ bool ACANFD_STM32_ExtendedFilters::addDual (const uint32_t inIdentifier1,
   return ok ;
 }
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 bool ACANFD_STM32_ExtendedFilters::addRange (const uint32_t inIdentifier1,
                                               const uint32_t inIdentifier2,
@@ -120,7 +120,7 @@ bool ACANFD_STM32_ExtendedFilters::addRange (const uint32_t inIdentifier1,
   return ok ;
 }
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 bool ACANFD_STM32_ExtendedFilters::addClassic (const uint32_t inIdentifier,
                                                 const uint32_t inMask,
@@ -141,4 +141,4 @@ bool ACANFD_STM32_ExtendedFilters::addClassic (const uint32_t inIdentifier,
   return ok ;
 }
 
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
